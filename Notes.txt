@@ -1,0 +1,33 @@
+PluginTemplate2.9.6.0-en
+
+This is the Lino template which was based on the Wolf template.
+
+
+Create a new project and open the file MyTemplate.vstemplate.
+
+I had to change the guid, I just made one up, probably should have used a generator but the internet was down.
+
+I changed to use x86 architecture.
+
+I had to update the project to latest .net, 4 something.
+
+I had to change some other name thing that started and ended with $.  $safeprojectname$, I think it was on every class.
+
+You may have to add references to the decal dlls.  You kind of have to look for the interop one, it is in a different location.
+
+You have to play with these to get it to work.  I think that if you remove all 'decal' references and add only a reference to Decal.Adapter, should get the base 'template' to compile and run.
+
+I clicked the "COM" button in the build or properties somewhere.  (Advanced Settings)
+
+5/18/2025
+I have the echo filter stuff working now and added a class for Decal Constants (This was borrowed from VVS SpellBarSaver as adapted by Virindi.)
+
+
+
+
+
+.NET Framework v3.5 Service Pack 1 was not found. In order to target ".NETFramework,Version=v2.0", .NET Framework v3.5 Service Pack 1 or later must be installed.
+
+
+
+
