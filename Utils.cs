@@ -4,6 +4,7 @@ using Decal.Constants;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Media;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -11,6 +12,8 @@ namespace WaynesWorld
 {
     public partial class PluginCore
     {
+        public SoundPlayer soundPlayerCreate = new SoundPlayer(@"C:\DP3\found.wav");
+        public SoundPlayer soundPlayerDestroy = new SoundPlayer(@"C:\DP3\gone.wav");
         private double DistanceToSelf(WorldObject obj)
         {
             return CoreManager.Current.WorldFilter.Distance(Core.CharacterFilter.Id, obj.Id);

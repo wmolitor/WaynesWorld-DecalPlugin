@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<view icon="8829" title="WaynesWorld" width="242" height="300">
+		<control progid="DecalControls.FixedLayout" clipped="">
+			<control progid="DecalControls.Notebook" name="nbkMain" left="0" top="0" width="240" height="264">
+			<page label="Main">
+				<control progid="DecalControls.FixedLayout" clipped="">
+					<control progid="DecalControls.Edit" name="TestEdit" left="16" top="76" width="200" height="16" imageportalsrc="4726" textcolor="16777215" text="Yo"/>
+					<control progid="DecalControls.StaticText" name="instructions" left="16" top="56" width="200" height="16" textcolor="16777215" text="Enter autoloot test value"/>
+					<control progid="DecalControls.Checkbox" name="cbAutoHeal" ID="21" left="16" top="8" width="200" height="16" checked="true" text="Auto Heal"/>
+					<control progid="DecalControls.Slider" name="sbHealth" left="16" top="28" width="200" height="12" minimum="0" maximum="100" textcolor="0" vertical="0"/>
+					<control progid="DecalControls.StaticText" name="AutoLoot" left="60" top="180" width="120" height="12" justify="Center" text="Auto Loot"/>
+					<control progid="DecalControls.PushButton" name="pbAutoLoot" ID="2" left="60" top="200" width="120" height="24" text="Start Auto Loot"/>
+					<control progid="DecalControls.StaticText" name="stOpenCorpse" left="16" top="104" width="72" height="16" text="Timer Open"/>
+					<control progid="DecalControls.StaticText" name="stLootCorpse" left="128" top="104" width="72" height="16" text="Timer Loot"/>
+					<control progid="DecalControls.Edit" name="editOpenTimer" left="16" top="128" width="80" height="16" imageportalsrc="4726" text="2000"/>
+					<control progid="DecalControls.Edit" name="editLootTimer" left="128" top="128" width="80" height="16" imageportalsrc="4726" text="2000"/>
+				</control>
+
+			</page>
+			<page label="About">
+				<control progid="DecalControls.FixedLayout" clipped="">
+					<control progid="DecalControls.StaticText" name="AboutText1" left="20" top="20" width="200" height="80" justify="Center" fontface="Times New Roman" fontsize="18" fontstyle="" text="WaynesWorld was written by $username$."/>
+					<control progid="DecalControls.StaticText" name="UseAtOwnRisk" left="20" top="120" width="200" height="40" textcolor="192" justify="Center" fontface="Times New Roman" fontsize="20" fontstyle=" bold" text="USE AT YOUR OWN RISK!"/>
+				</control>
+
+			</page>
+			<page label="Seek">
+				<control progid="DecalControls.FixedLayout" clipped="">
+					<control progid="DecalControls.Edit" name="editSeek_1" ID="11" left="8" top="28" width="184" height="16" imageportalsrc="4726" text="Red Garnet"/>
+					<control progid="DecalControls.Edit" name="editSeek_2" ID="12" left="8" top="48" width="184" height="16" imageportalsrc="4726" text="White Sapphire"/>
+					<control progid="DecalControls.Edit" name="editSeek_3" ID="13" left="8" top="68" width="184" height="16" imageportalsrc="4726" text=""/>
+					<control progid="DecalControls.Edit" name="editSeek_4" ID="14" left="8" top="88" width="184" height="16" imageportalsrc="4726" text=""/>
+					<control progid="DecalControls.Edit" name="editSeek_5" ID="15" left="8" top="108" width="184" height="16" imageportalsrc="4726" text=""/>
+					<control progid="DecalControls.Edit" name="editSeek_6" ID="16" left="8" top="128" width="184" height="16" imageportalsrc="4726" text="Plant"/>
+					<control progid="DecalControls.Checkbox" name="cbSeek_1" ID="1" left="200" top="28" width="16" height="16" text=""/>
+					<control progid="DecalControls.Checkbox" name="cbSeek_2" ID="2" left="200" top="48" width="16" height="16" text=""/>
+					<control progid="DecalControls.Checkbox" name="cbSeek_3" ID="3" left="200" top="68" width="16" height="16" text=""/>
+					<control progid="DecalControls.Checkbox" name="cbSeek_4" ID="4" left="200" top="88" width="16" height="16" text=""/>
+					<control progid="DecalControls.Checkbox" name="cbSeek_5" ID="5" left="200" top="108" width="16" height="16" text=""/>
+					<control progid="DecalControls.Checkbox" name="cbSeek_6" ID="6" left="200" top="128" width="16" height="16" checked="true" text=""/>
+					<control progid="DecalControls.StaticText" name="labelSeek_1" left="8" top="8" width="200" height="16" text="Enter seek items below"/>
+					<control progid="DecalControls.List" name="seekListbox_1" left="8" top="145" width="224" height="84">
+						<column progid="DecalControls.TextColumn"/>
+					</control>
+					<control progid="DecalControls.Checkbox" name="cbMaterial_1" ID="11" left="220" top="28" width="16" height="16" checked="true" text=""/>
+					<control progid="DecalControls.Checkbox" name="cbMaterial_2" ID="12" left="220" top="48" width="16" height="16" checked="true" text=""/>
+					<control progid="DecalControls.Checkbox" name="cbMaterial_3" ID="13" left="220" top="68" width="16" height="16" text=""/>
+					<control progid="DecalControls.Checkbox" name="cbMaterial_4" ID="14" left="220" top="88" width="16" height="16" text=""/>
+					<control progid="DecalControls.Checkbox" name="cbMaterial_5" ID="15" left="220" top="108" width="16" height="16" text=""/>
+					<control progid="DecalControls.Checkbox" name="cbMaterial_6" ID="16" left="220" top="128" width="16" height="16" text=""/>
+					<control progid="DecalControls.StaticText" name="Label1" ID="1" left="197" top="8" width="44" height="16" text="Nm  Mt"/>
+					<control progid="DecalControls.PushButton" name="pbClearList" ID="1" left="88" top="231" width="64" height="16" text="Clear List"/>
+				</control>
+
+			</page>
+			</control>
+
+		</control>
+
+</view>

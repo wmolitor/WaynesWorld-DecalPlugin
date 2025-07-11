@@ -20,7 +20,7 @@ namespace WaynesWorld
             lootTimer = new Timer(1000); // Set the timer to .5 second
             lootTimer.AutoReset = true; // Set the timer to repeat
             lootTimer.Elapsed += LootTimer_Tick;
-            WriteToChat("AutoLoot Timer initialized. Please hit start button!");
+             WriteToChat("[AL] AutoLoot Timer initialized. Please hit start button!");
             
             // Todo: uncomment to start the timer
             //lootTimer.Start(); // Start the timer
@@ -28,7 +28,7 @@ namespace WaynesWorld
 
         public void destroyTimer()
         {
-            WriteToChat("AutoLoot Plugin shutting down.");
+             WriteToChat("[AL] AutoLoot Plugin shutting down.");
             lootTimer?.Stop();
             lootTimer?.Dispose();
             CoreManager.Current.WorldFilter.ChangeObject -= WorldFilter_ChangeObject_Timer;
@@ -37,7 +37,7 @@ namespace WaynesWorld
 
         private void LootTimer_Tick(object sender, EventArgs e)
         {
-            WriteToChat($"AutoLoot Timer ticked. isBusy: {isBusy}");
+             WriteToChat("$[AL] AutoLoot Timer ticked. isBusy: {isBusy}");
             if (isBusy == 0)
             {
                 TryNextAction();
@@ -51,7 +51,7 @@ namespace WaynesWorld
 
         private void TryNextAction()
         {
-            WriteToChat($"TryNextAction. isBusy: {isBusy}  actionQueue.Count: {actionQueue.Count}");
+             WriteToChat("$[AL] TryNextAction. isBusy: {isBusy}  actionQueue.Count: {actionQueue.Count}");
             if (isBusy == 0)
             {
                 if ((actionQueue.Count > 0) && !inAction)
@@ -69,20 +69,19 @@ namespace WaynesWorld
 
         private void ScanForCorpses()
         {
-            WriteToChat("Scanning for corpses...");
+             WriteToChat("[AL] Scanning for corpses...");
             foreach (WorldObject obj in CoreManager.Current.WorldFilter.GetByObjectClass(ObjectClass.Corpse))
             {
                 int count = CoreManager.Current.WorldFilter.GetByObjectClass(ObjectClass.Corpse).Count;
-                int current = 0;
                 if (count == 0)
                 {
-                    WriteToChat("No corpses found.");
+                     WriteToChat("[AL] No corpses found.");
                     return;
                 }
-                WriteToChat($"Checking corpse({++current}/{count}): {obj.Name} at distance {DistanceToSelf(obj)}");
+                 WriteToChat("$[AL] Checking corpse({++current}/{count}): {obj.Name} at distance {DistanceToSelf(obj)}");
                 if (obj.Name != null && DistanceToSelf(obj) < 2.0)
                 {
-                    WriteToChat($"Queue corpse: {obj.Name}");
+                     WriteToChat("$[AL] Queue corpse: {obj.Name}");
                     EnqueueAction(() => OpenCorpse(obj.Id));
                     //break;
                 }
@@ -93,7 +92,7 @@ namespace WaynesWorld
         {
             try
             {
-                WriteToChat("Opening corpse...");
+                 WriteToChat("[AL] Opening corpse...");
                 CoreManager.Current.Actions.UseItem(corpseId, 0); // Open container
                                                                   // Delay actual looting slightly (corpse takes a moment to open)
                 Timer delay = new Timer { Interval = double.Parse(editOpenTimer.Text) };
@@ -107,7 +106,7 @@ namespace WaynesWorld
             }
             catch (Exception ex)
             {
-                WriteToChat($"Error opening corpse: {ex.Message}");
+                 WriteToChat("$[AL] Error opening corpse: {ex.Message}");
                 ErrorLogging.LogError(errorLogFile, ex);
             } 
         }
@@ -125,7 +124,7 @@ namespace WaynesWorld
                     {
                         if (ShouldLoot(obj))
                         {
-                            WriteToChat($"Looting: {obj.Name}");
+                             WriteToChat("$[AL] Looting: {obj.Name}");
                             Timer delay = new Timer { Interval = double.Parse(editLootTimer.Text) };
                             delay.Elapsed += (s, e) =>
                             {
@@ -140,7 +139,7 @@ namespace WaynesWorld
             }
             catch (Exception ex)
             {
-                WriteToChat($"Error looting from corpse: {ex.Message}");
+                 WriteToChat("$[AL] Error looting from corpse: {ex.Message}");
                 ErrorLogging.LogError(errorLogFile, ex);
             }
             inAction = false;
@@ -151,13 +150,13 @@ namespace WaynesWorld
             // Customize this logic as needed
             if (item.Name.Contains(TestEdit.Text))
             {
-                WriteToChat($"Looting {item.Name} because it matches the filter text.");
+                 WriteToChat("$[AL] Looting {item.Name} because it matches the filter text.");
                 return true;
             }
 
             if (item.Values(LongValueKey.Value) > 5000)
             {
-                WriteToChat($"Looting {item.Name} because its value is greater than 5000.");
+                 WriteToChat("$[AL] Looting {item.Name} because its value is greater than 5000.");
                 return true;
             }   
 

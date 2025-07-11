@@ -2,6 +2,7 @@ using Decal.Adapter;
 using Decal.Adapter.Wrappers;
 using System;
 using System.Collections.Generic;
+using static WaynesWorld.PluginCore;
 
 namespace WaynesWorld
 {
@@ -32,25 +33,26 @@ namespace WaynesWorld
         private StaticWrapper AutoLoot;
 
         [ControlReference("pbAutoLoot")]
-        private ButtonWrapper pbAutoLoot;
+        private PushButtonWrapper pbAutoLoot;
 
         [ControlEvent("pbAutoLoot", "Click")]
         private void onClickAutoLoot(object sender, ControlEventArgs args)
         {
             try
             {
+                WriteToChat("pbAutoLoot Hit");
                 // Toggle auto loot functionality
                 if (AutoLootEnabled)
                 {
                     AutoLootEnabled = false;
-                    AutoLoot.Text = "Start Auto Loot";
-                    WriteToChat("Auto Loot Disabled");
+                    autoLootStateMachine.Stop();
+                    pbAutoLoot.Text = "Start Auto Loot";
                 }
                 else
                 {
                     AutoLootEnabled = true;
-                    AutoLoot.Text = "Stop Auto Loot";
-                    WriteToChat("Auto Loot Enabled");
+                    autoLootStateMachine.Start();
+                    pbAutoLoot.Text = "Stop Auto Loot";
                 }
             }
             catch (Exception ex)
@@ -63,16 +65,19 @@ namespace WaynesWorld
             get { return autoLootEnabled; }
             set
             {
+                //WriteToChat("Setting autoLootEnabled: " + value);
                 autoLootEnabled = value;
                 if (autoLootEnabled)
                 {
-                    lootTimer.Start();
-                    WriteToChat("Auto Loot Timer Started");
+                    //lootTimer.Start();
+                    autoLootStateMachine.Start();
+                    //WriteToChat("Auto Loot Timer Started");
                 }
                 else
                 {
-                    lootTimer.Stop();
-                    WriteToChat("Auto Loot Timer Stopped");
+                    //lootTimer.Stop();
+                    autoLootStateMachine.Stop();
+                    //WriteToChat("Auto Loot Timer Stopped");
                 }
             }
         }
@@ -170,7 +175,7 @@ namespace WaynesWorld
 
 
         [ControlReference("pbClearList")]
-        private ButtonWrapper pbClearList;
+        private PushButtonWrapper pbClearList;
 
         [ControlEvent("pbClearList", "Click")]
         private void onClickClearList(object sender, ControlEventArgs args)

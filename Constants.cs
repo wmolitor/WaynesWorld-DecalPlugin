@@ -681,14 +681,29 @@ namespace Decal.Constants
         public const int Summoning = 0x06; // Summoning Spells
     }
 
+    public static class BusyState
+    {
+        public const int Idle = 0;
+        public const int CombiningStack = 1;
+        public const int SplittingStack = 2;
+        public const int Unknown = 3;
+        public const int PickupItemFromGround = 4;
+        public const int MovingUnequippingItem = 5;
+        public const int DropItemToGround = 6;
+        public const int EquipItem = 7;
+    }
+
     public enum LootState
     {
         Idle,
         ScanForCorpse,
         OpenCorpse,
+        WaitForOpenCorpse,
         ScanForItems,
         PickupItems,
-        Done
+        WaitForPickupItems,
+        Done,
+        Unknown 
     }
 
 }

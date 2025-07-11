@@ -19,18 +19,17 @@ namespace WaynesWorld
         private static string FILENAME_ERRORLOG = "errorlog.txt";
         private static string FILENAME_SETTINGS = "settings.xml";
 
-        SoundPlayer soundPlayerCreate = new SoundPlayer(@"C:\DP3\found.wav");
-        SoundPlayer soundPlayerDestroy = new SoundPlayer(@"C:\DP3\gone.wav");
-
         List<WorldObject> seekList = new List<WorldObject>();
         bool loginComplete = false;
+        bool autoLootEnabled = false;
+        public bool isLogLocked = false; // used to prevent re-entrancy issues with logging
 
         private Timer lootTimer;
         private int isBusy => CoreManager.Current.Actions.BusyState;
         private Queue<Action> actionQueue = new Queue<Action>();
 
-        bool autoLootEnabled = false;
-       
+        private AutoLootStateMachine autoLootStateMachine;
+
         public string settingsFolder
         {
             get
@@ -45,12 +44,16 @@ namespace WaynesWorld
         {
             try
             {
+                autoLootStateMachine = new AutoLootStateMachine(this);
+
                 initCharStats();
                 initWorldFilter();
                 initChatEvents();
                 initEcho2Filter();
                 initPath();
-                initTimer();
+                //initTimer();
+                loadSettings();
+                ErrorLogging.log($"{pluginSettings.ToString()}", 1); // Dump settings to log
 
                 soundPlayerCreate.Load(); // Optional: Preload the file
                 soundPlayerDestroy.Load(); // Play the sound when the plugin starts

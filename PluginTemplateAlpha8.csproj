@@ -49,10 +49,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AutoLootStateMachine.cs" />
     <Compile Include="charStats.cs" />
     <Compile Include="chatEvents.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="echoFilter.cs" />
+    <Compile Include="ItemRule.cs" />
     <Compile Include="mainView.cs" />
     <Compile Include="ErrorLogging.cs" />
     <Compile Include="PluginCore.cs" />

@@ -6,6 +6,7 @@
 
 using Decal.Adapter;
 using Decal.Adapter.Wrappers;
+using Decal.Constants;
 using System;
 
 //
@@ -22,6 +23,7 @@ namespace WaynesWorld
 
             // Uncomment the following line to enable the echo filter
             Core.EchoFilter.ServerDispatch += new EventHandler<Decal.Adapter.NetworkMessageEventArgs>(EchoFilter_ServerDispatch);
+            //CoreManager.Current.EchoFilter.ServerDispatch += new EventHandler<Decal.Adapter.NetworkMessageEventArgs>(FSM_EchoFilter_ServerDispatch);
             //Core.EchoFilter.ClientDispatch += new EventHandler<Decal.Adapter.NetworkMessageEventArgs>(EchoFilter_ClientDispatch);
         }
         private void destroyEcho2Filter()
@@ -35,11 +37,10 @@ namespace WaynesWorld
             // DO STUFF HERE
             try
             {
-                if (((e.Message.Type == Decal.Constants.MessageTypes.GameEvent)&&(e.Message.Value<int>("event") == Decal.Constants.GameEvents.ReceiveMeleeDamage)) || 
-                    ((e.Message.Type == Decal.Constants.MessageTypes.SetCharacterCurrentVital) && (e.Message.Value<uint>("CurVitalID") == Decal.Constants.CurVitalID.CurrentHealth)))
+                if (cbAutoHeal.Checked)
                 {
-
-                    if (cbAutoHeal.Checked)
+                    if (((e.Message.Type == Decal.Constants.MessageTypes.GameEvent)&&(e.Message.Value<int>("event") == Decal.Constants.GameEvents.ReceiveMeleeDamage)) || 
+                    ((e.Message.Type == Decal.Constants.MessageTypes.SetCharacterCurrentVital) && (e.Message.Value<uint>("CurVitalID") == Decal.Constants.CurVitalID.CurrentHealth)))
                     {
                         // Check current health and apply healing item if necessary
                         int healthCurrent = Core.CharacterFilter.Vitals[CharFilterVitalType.Health].Current;
@@ -52,6 +53,48 @@ namespace WaynesWorld
                             WriteToChat("Health Current: " + healthCurrent + " | Health Buffed: " + healthBuffed + " | Ratio: " + healthRatio.ToString("P2"));
                             WriteToChat("WARNING: Your health is below " + sbHealth.Position + "%! ATTEMPTING TO HEAL!!");
                             Host.Actions.ApplyItem(Find_Heal_Kit(), Core.CharacterFilter.Id);
+                        }
+                    }
+                }
+
+                //
+                ////////////////////////////////////////////////
+                //
+
+                /*
+                if (e.Message.Type == Decal.Constants.MessageTypes.GameEvent)
+                    ErrorLogging.log("Game Event 0xF7B0: 0x" + e.Message.Value<int>("event").ToString("X4"), 1);
+                else if (e.Message.Type == Decal.Constants.MessageTypes.GameAction)
+                    ErrorLogging.log("Game Action 0xF7B1: 0x" + e.Message.Value<int>("action").ToString("X4"), 1);
+                else
+                    ErrorLogging.log(e.Message.Type.ToString("X4"), 1); // Log the message type
+                */
+
+                ////////////////////////////////////////////////
+                //  Just opened a container and server set its contents
+                if (loginComplete)
+                {
+                    if ((e.Message.Type == Decal.Constants.MessageTypes.GameEvent) && (e.Message.Value<int>("event") == Decal.Constants.GameEvents.SetPackContents))
+                    {
+                        ErrorLogging.log("[ECHO] 0xF7B1: 0x" + e.Message.Value<int>("action").ToString("X4") + " Set Pack Contenets (" + e.Message.Value<int>("itemCount") + ")", 1);
+                        autoLootStateMachine.SetState(LootState.ScanForItems);
+                    }
+
+                    ////////////////////////////////////////////////
+                    //  Just added an item to the player's inventory
+                    if ((e.Message.Type == Decal.Constants.MessageTypes.GameEvent) && (e.Message.Value<int>("event") == Decal.Constants.GameEvents.InsertInventoryItem))
+                    {
+                        int itemId = e.Message.Value<int>("item");
+                        // get a list of all items in the player's inventory
+                        foreach (WorldObject obj in CoreManager.Current.WorldFilter.GetByContainer(Core.CharacterFilter.Id))
+                        {
+                            // Is the item of interest in the player's inventory?
+                            if (obj.Id == itemId)
+                            {
+                                soundPlayerCreate.Play(); // Play sound when an item is inserted into inventory
+                                ErrorLogging.log("[ECHO]: 0xF7B0: event 0x0022: Insert Inventory Item: " + obj.Name, 3);
+                                autoLootStateMachine.SetState(LootState.ScanForItems);
+                            }
                         }
                     }
                 }

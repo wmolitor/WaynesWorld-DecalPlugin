@@ -1,3 +1,4 @@
+using Decal.Adapter;
 using System;
 using System.IO;
 
@@ -5,6 +6,10 @@ namespace WaynesWorld
 {
     internal class ErrorLogging
     {
+        private static readonly object _fileLock = new object();
+        private static readonly string filePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\" + "Decal Plugins" + "\\" + "WaynesWorld" + "\\" + "AutoLootStateMachine.txt";
+
+
         internal static void LogError(string logFile, Exception ex)
         {
             using (StreamWriter sw = new StreamWriter(logFile, true))
@@ -23,6 +28,38 @@ namespace WaynesWorld
                 sw.WriteLine("");
                 sw.Close();
             }
+        }
+
+        /*
+             * 0 - No logging
+             * 1 - Log to file only
+             * 2 - Log to file and chat
+             */
+        internal static void log(string message, int log_level)
+        {
+            
+            string textToAppend = $"[LootFSM][LOG: {DateTime.Now:HH:mm:ss.fff}] {message}";
+
+            if (log_level > 0)
+            {
+                lock (_fileLock)
+                {
+                    // Ensure the directory exists before appending to the file
+                    string directoryPath = Path.GetDirectoryName(filePath);
+                    if (!Directory.Exists(directoryPath))
+                    {
+                        Directory.CreateDirectory(directoryPath);
+                    }
+                    // Append the text to the file
+                    File.AppendAllText(filePath, textToAppend + "\n");
+                }
+                
+            }
+            if (log_level > 1)
+            {
+                CoreManager.Current.Actions.AddChatText(textToAppend, 5);
+            }
+            return;
         }
     }
 }

@@ -1,9 +1,12 @@
+using Decal.Adapter;
 using Decal.Adapter.Wrappers;
 using Decal.Constants;
 using Decal.Filters;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Timers;
+
 //using System.Collections.Generic;
 //using System.Media;
 //using System.IO.Pipes;
@@ -49,7 +52,8 @@ namespace WaynesWorld
             // Core.WorldFilter.DeclineTrade += new EventHandler<DeclineTradeEventArgs>(WorldFilter_DeclineTrade);
 
             // Initialize the CreateObject event handler
-            Core.WorldFilter.CreateObject += new EventHandler<CreateObjectEventArgs>(WorldFilter_CreateObject);
+            //Core.WorldFilter.CreateObject += new EventHandler<CreateObjectEventArgs>(WorldFilter_CreateObject);
+            Core.WorldFilter.CreateObject += new EventHandler<CreateObjectEventArgs>(FSM_WorldFilter_CreateObject);
 
             // Initialize the ChangeObject event handler
             // Core.WorldFilter.ChangeObject += new EventHandler<ChangeObjectEventArgs>(WorldFilter_ChangeObject);
@@ -283,6 +287,32 @@ namespace WaynesWorld
                             soundPlayerDestroy.Play(); // Play the sound for an item being removed from the seek list
                             break; // Exit the loop after removing the item
                         }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ErrorLogging.LogError(errorLogFile, ex);
+                }
+            }
+            // If the item released is a corpse, remove it from the corpseLooted list
+            if (e.Released.ObjectClass == ObjectClass.Corpse)
+            {
+                try
+                {
+                    // Check if the corpse is in the corpseLooted list
+                    HashSet<int> corpsesLootedIds = autoLootStateMachine.GetcorpsesLootedIds();
+                    HashSet<int> corpsesToLootIds = autoLootStateMachine.GetcorpsesToLootIds(); // Create a copy of the corpsesLooted list
+                    if (corpsesLootedIds.Contains(e.Released.Id))
+                    {
+                        // If the corpse is in the list, remove it
+                        CoreManager.Current.Actions.AddChatText($"Corpse: {e.Released.Name}  removed from loot list", 5);
+                        corpsesLootedIds.Remove(e.Released.Id); // remove this corpse
+                    }
+                    if (corpsesToLootIds.Contains(e.Released.Id))
+                    {
+                        // If the corpse is in the list, remove it
+                        CoreManager.Current.Actions.AddChatText($"Corpse: {e.Released.Name}  removed from loot list", 5);
+                        corpsesToLootIds.Remove(e.Released.Id); // remove this corpse
                     }
                 }
                 catch (Exception ex)
