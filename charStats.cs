@@ -194,7 +194,6 @@ namespace WaynesWorld
             Core.Actions.AddChatText("<Wayne'sWorld> V1.0.0.0 started.", Decal.Constants.TextColors.AC_GREEN);
             sbHealth.Position = AUTO_HEAL_THRESHOLD; // Default health for auto-heal threshold
             loginComplete = true;
-            loadSettings();
             // DO STUFF HERE
         }
 

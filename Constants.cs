@@ -702,7 +702,6 @@ namespace Decal.Constants
         ScanForItems,
         PickupItems,
         WaitForPickupItems,
-        Done,
         Unknown 
     }
 

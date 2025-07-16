@@ -20,6 +20,9 @@ namespace WaynesWorld
         [ControlReference("cbAutoHeal")]
         private CheckBoxWrapper cbAutoHeal;
 
+        [ControlReference("editLogLevel")]
+        private TextBoxWrapper editLogLevel;
+
         [ControlReference("sbHealth")]
         private SliderWrapper sbHealth;
 

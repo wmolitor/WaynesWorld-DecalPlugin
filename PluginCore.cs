@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Media;
+using System.Runtime.CompilerServices;
 using System.Timers;
 
 namespace WaynesWorld
@@ -53,7 +54,9 @@ namespace WaynesWorld
                 initPath();
                 //initTimer();
                 loadSettings();
-                ErrorLogging.log($"{pluginSettings.ToString()}", 1); // Dump settings to log
+                // precompile rules for performance
+                compileRules();
+                ErrorLogging.log($"{pluginSettings.ToString()}", int.Parse(editLogLevel.Text)); // Dump settings to log
 
                 soundPlayerCreate.Load(); // Optional: Preload the file
                 soundPlayerDestroy.Load(); // Play the sound when the plugin starts

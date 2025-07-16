@@ -24,9 +24,14 @@ namespace WaynesWorld
             logSettings();
         }
 
+        private void compileRules()
+        {
+            pluginSettings.CompileAllRules();
+        }
+
         private void saveSettings()
         {
-            pluginSettings.save(settingsFolder + DIR_SEP + FILENAME_SETTINGS, errorLogFile);
+            //pluginSettings.save(settingsFolder + DIR_SEP + FILENAME_SETTINGS, errorLogFile);
         }
 
         private void initSettings()
@@ -38,13 +43,13 @@ namespace WaynesWorld
         {
             if (pluginSettings == null || pluginSettings.Items == null)
             {
-                WriteToChat("[FSM][SETTINGS] Plugin settings are null. Please check your settings file.");
+                ErrorLogging.log("[FSM][SETTINGS] Plugin settings are null. Please check your settings file.", 1);
                 return;
             }
-            WriteToChat("[FSM][SETTINGS] Plugin Settings:");
+            ErrorLogging.log("[FSM][SETTINGS] Plugin Settings:", 1);
             foreach (var item in pluginSettings.Items)
             {
-                WriteToChat($"   Item: {item.RuleName}, Regex: {item.Regex}, Enabled: {item.Enabled}");
+                ErrorLogging.log($"   Item: {item.rulename}, Regex: {item.regex}, Enabled: {item.enabled}", 1);
             }
             return;
         }
@@ -56,9 +61,9 @@ namespace WaynesWorld
             /* The serializer only works with public properties (or fields) that have getters and setters */
 
 
-                [XmlArray("items")]
-                [XmlArrayItem("item")]
-                public List<ItemRule> Items { get; set; } = new List<ItemRule>();
+            [XmlArray("items")]
+            [XmlArrayItem("item")]
+            public List<Rule> Items { get; set; } = new List<Rule>();
 
             public PluginSettings()
             {
@@ -104,6 +109,14 @@ namespace WaynesWorld
                 catch (Exception ex)
                 {
                     ErrorLogging.LogError(errorLogFile, ex);
+                }
+            }
+
+            public void CompileAllRules()
+            {
+                foreach (var rule in Items)
+                {
+                    rule.Compile();
                 }
             }
         }

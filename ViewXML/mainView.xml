@@ -6,14 +6,16 @@
 				<control progid="DecalControls.FixedLayout" clipped="">
 					<control progid="DecalControls.Edit" name="TestEdit" left="16" top="76" width="200" height="16" imageportalsrc="4726" textcolor="16777215" text="Yo"/>
 					<control progid="DecalControls.StaticText" name="instructions" left="16" top="56" width="200" height="16" textcolor="16777215" text="Enter autoloot test value"/>
-					<control progid="DecalControls.Checkbox" name="cbAutoHeal" ID="21" left="16" top="8" width="200" height="16" checked="true" text="Auto Heal"/>
-					<control progid="DecalControls.Slider" name="sbHealth" left="16" top="28" width="200" height="12" minimum="0" maximum="100" textcolor="0" vertical="0"/>
+					<control progid="DecalControls.Checkbox" name="cbAutoHeal" ID="21" left="16" top="8" width="88" height="16" checked="true" text="Auto Heal"/>
+					<control progid="DecalControls.Slider" name="sbHealth" left="16" top="36" width="200" height="12" minimum="0" maximum="100" textcolor="0" vertical="0"/>
 					<control progid="DecalControls.StaticText" name="AutoLoot" left="60" top="180" width="120" height="12" justify="Center" text="Auto Loot"/>
 					<control progid="DecalControls.PushButton" name="pbAutoLoot" ID="2" left="60" top="200" width="120" height="24" text="Start Auto Loot"/>
 					<control progid="DecalControls.StaticText" name="stOpenCorpse" left="16" top="104" width="72" height="16" text="Timer Open"/>
 					<control progid="DecalControls.StaticText" name="stLootCorpse" left="128" top="104" width="72" height="16" text="Timer Loot"/>
 					<control progid="DecalControls.Edit" name="editOpenTimer" left="16" top="128" width="80" height="16" imageportalsrc="4726" text="2000"/>
 					<control progid="DecalControls.Edit" name="editLootTimer" left="128" top="128" width="80" height="16" imageportalsrc="4726" text="2000"/>
+					<control progid="DecalControls.Edit" name="editLogLevel" left="124" top="8" width="20" height="16" imageportalsrc="4726" text="0"/>
+					<control progid="DecalControls.StaticText" name="Log Level " left="146" top="8" width="88" height="32" text="Log Level 0-Off, 1-File,2-File/Chat"/>
 				</control>
 
 			</page>

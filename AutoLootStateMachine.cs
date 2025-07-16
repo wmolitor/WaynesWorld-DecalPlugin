@@ -9,6 +9,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Media;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Timers;
 
@@ -34,6 +35,8 @@ namespace WaynesWorld
             private LootState previousState = LootState.Unknown;
             private LootState currentState = LootState.Idle;
             private Timer tickTimer;
+            public Timer openCorpseTimer;
+            public Timer grabItemTimer;
             private int waitTicks = 0;
 
             private int itemToGrabId = 0;
@@ -51,25 +54,58 @@ namespace WaynesWorld
 
             private PluginCore pluginCore;
 
+            bool isTrainedCreatureEnchantment = false;
+            bool isTrainedLifeMagic = false;
+            bool isTrainedItemEnchantment = false;
+            bool isTrainedWarMagic = false;
+            bool isTrainedVoidMagic = false;
+            bool isTrainedSummoningEnchantment = false;
 
+            Stopwatch stopwatch0 = new Stopwatch();
+            Stopwatch stopwatch1 = new Stopwatch();
+            Stopwatch stopwatch2 = new Stopwatch();
+            Stopwatch stopwatch3 = new Stopwatch();
+            Stopwatch stopwatch4 = new Stopwatch();
+
+            // Constructor
             public AutoLootStateMachine(PluginCore core)
             {
-                tickTimer = new Timer(1000); // 0.5 second loop
+                tickTimer = new Timer(1000); // 1.0 second loop
                 tickTimer.Elapsed += OnTick;
+                tickTimer.AutoReset = true; // Set the timer to repeat
+
+                openCorpseTimer = new Timer(4000); // 4 seconds to wait for corpse to open
+                openCorpseTimer.Elapsed += (sender, e) => SetState(LootState.ScanForItems);
+                openCorpseTimer.AutoReset = false; // Set the timer to not repeat
+
+                grabItemTimer = new Timer(4000); // 4 seconds to wait for item to be grabbed
+                grabItemTimer.Elapsed += (sender, e) => SetState(LootState.PickupItems);
+                grabItemTimer.AutoReset = false; // Set the timer to not repeat
+
                 pluginCore = core;
             }
 
             public void Start()
             {
+                isTrainedCreatureEnchantment = Decal.Adapter.CoreManager.Current.CharacterFilter.Skills[Decal.Adapter.Wrappers.CharFilterSkillType.CreatureEnchantment].Training >= TrainingType.Trained;
+                isTrainedLifeMagic = Decal.Adapter.CoreManager.Current.CharacterFilter.Skills[Decal.Adapter.Wrappers.CharFilterSkillType.LifeMagic].Training >= TrainingType.Trained;
+                isTrainedItemEnchantment = Decal.Adapter.CoreManager.Current.CharacterFilter.Skills[Decal.Adapter.Wrappers.CharFilterSkillType.ItemEnchantment].Training >= TrainingType.Trained;
+                isTrainedWarMagic = Decal.Adapter.CoreManager.Current.CharacterFilter.Skills[Decal.Adapter.Wrappers.CharFilterSkillType.WarMagic].Training >= TrainingType.Trained;
+                isTrainedVoidMagic = Decal.Adapter.CoreManager.Current.CharacterFilter.Skills[Decal.Adapter.Wrappers.CharFilterSkillType.VoidMagic].Training >= TrainingType.Trained;
+                isTrainedSummoningEnchantment = Decal.Adapter.CoreManager.Current.CharacterFilter.Skills[Decal.Adapter.Wrappers.CharFilterSkillType.Summoning].Training >= TrainingType.Trained;
                 tickTimer.Start();
                 isRunning = true;
-                ErrorLogging.log($"[FSM] Plugin started.", 3);
+                isBusy = false;
+                currentState = LootState.Idle;
+                ErrorLogging.log($"[FSM] Plugin started.", int.Parse(pluginCore.editLogLevel.Text));
             }
             public void Stop()
             {
                 tickTimer.Stop();
                 isRunning = false;
-                ErrorLogging.log($"[FSM] Plugin stopped.", 3);
+                currentState = LootState.Idle;
+                isBusy = false;
+                ErrorLogging.log($"[FSM] Plugin stopped.", int.Parse(pluginCore.editLogLevel.Text));
             }
 
             public HashSet<int> GetcorpsesLootedIds()
@@ -86,13 +122,13 @@ namespace WaynesWorld
             {
                 if (!isRunning)
                 {
-                    ErrorLogging.log($"[FSM] SetState() ERROR: Attempted to set state while FSM is not running, stopping FSM timer.", 3);
+                    ErrorLogging.log($"[FSM] SetState() ERROR: Attempted to set state while FSM is not running, stopping FSM timer.", int.Parse(pluginCore.editLogLevel.Text));
                     this.Stop();
                     return;
                 }
                 if (state == LootState.Unknown)
                 {
-                    ErrorLogging.log($"[FSM] SetState() ERROR: Attempted to set state while LootState.Unknown, stopping FSM timer.", 3);
+                    ErrorLogging.log($"[FSM] SetState() ERROR: Attempted to set state while LootState.Unknown, stopping FSM timer.", int.Parse(pluginCore.editLogLevel.Text));
                     this.Stop();
                     return;
                 }
@@ -100,7 +136,7 @@ namespace WaynesWorld
                 previousState = currentState;
                 currentState = state;
                 isBusy = false; // reset busy state
-                ErrorLogging.log($"[FSM] SetState() SETSTATE: currentState: {previousState} --> NextState: {currentState}", 3);
+                ErrorLogging.log($"[FSM] SetState() SETSTATE: currentState: {previousState} --> NextState: {currentState}", int.Parse(pluginCore.editLogLevel.Text));
                 return;
             }
 
@@ -108,61 +144,43 @@ namespace WaynesWorld
             {
                 if (CoreManager.Current.Actions.BusyState != Decal.Constants.BusyState.Idle)
                 {
-                    ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] OnTick: currentState: {currentState} -  BusyState: {CoreManager.Current.Actions.BusyState}, skipping clock tick.", 3);
+                    ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] OnTick: currentState: {currentState} -  BusyState: {CoreManager.Current.Actions.BusyState}, skipping clock tick.", int.Parse(pluginCore.editLogLevel.Text));
                     return; // skip this tick if we are busy
                 }
                 if (isBusy)
                 {
-                    ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] OnTick: currentState: {currentState} -  isBusy: {isBusy}, skipping clock tick.", 3);
+                    ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] OnTick: currentState: {currentState} -  isBusy: {isBusy}, skipping clock tick.", int.Parse(pluginCore.editLogLevel.Text));
                     return; // skip this tick if we are busy
                 }
-                ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] OnTick: currentState: {currentState}  All good, proceed to switch({currentState})", 3);
+                ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] OnTick: currentState: {currentState}  All good, proceed to switch({currentState})", int.Parse(pluginCore.editLogLevel.Text));
 
 
                 isBusy = true; // set busy state to true to prevent re-entrancy issues
                 switch (currentState)
                 {
                     case LootState.Idle:
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 1.0 currentState: {currentState}", 3);
+                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 1.0 currentState: {currentState}", int.Parse(pluginCore.editLogLevel.Text));
                         if (corpsesToLootIds.Count > 0)
                         {
                             previousState = currentState;
+                            currentCorpseId = 0;
+                            itemsToLootIds.Clear();
                             currentState = LootState.OpenCorpse;
-                            ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 1.1 currentState: {previousState} --> NextState: {currentState}", 3);
+                            ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 1.1 currentState: {previousState} --> NextState: {currentState}", int.Parse(pluginCore.editLogLevel.Text));
                         }
                         else
                         {
                             previousState = currentState; 
                             currentState = LootState.Idle; // go back to waiting
-                            ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 1.2 currentState: {previousState} --> NextState: {currentState} - No corpses to loot, waiting for corpses to be created.", 3);
+                            ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 1.2 currentState: {previousState} --> NextState: {currentState} - No corpses to loot, waiting for corpses to be created.", int.Parse(pluginCore.editLogLevel.Text));
                         }
-                        isBusy = false; // reset busy state
-                        break;
-
-
-                    case LootState.ScanForCorpse:
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 2.0 currentState: {currentState}", 3);
-                        previousState = currentState;
-                        FindNearCorpses(e);
-                        currentState = LootState.Unknown;
-                        if (corpsesToLootIds.Count > 0)
-                        {
-                            currentState = LootState.OpenCorpse;
-                        }
-                        else
-                        {
-                            currentState = LootState.Idle;
-                        }
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 2.1 currentState: ScanForCorpse -  Found corpses: " + corpsesToLootIds.Count, 3);
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 2.2 currentState: {previousState} --> NextState: {currentState}", 3);
                         isBusy = false; // reset busy state
                         break;
 
 
                     case LootState.OpenCorpse:
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 3.0 currentState: {currentState}", 3);
+                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 3.0 currentState: {currentState}", int.Parse(pluginCore.editLogLevel.Text));
                         previousState = currentState;
-                        currentState = LootState.Unknown;
                         currentCorpseId = corpsesToLootIds.First();
                         corpsesToLootIds.Remove(currentCorpseId);
                         corpsesLootedIds.Add(currentCorpseId);
@@ -172,45 +190,31 @@ namespace WaynesWorld
                         if (dts < 0.03)  // make this a config value
                         {
 
+                            ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 3.1 currentState: OpenCorpse -  Request Open corpse...", int.Parse(pluginCore.editLogLevel.Text));
+                            openCorpseTimer.Start(); // Start the timer to wait for the corpse to open
+                            currentState = LootState.WaitForOpenCorpse; // go to waiting for corpse to open state
                             CoreManager.Current.Actions.UseItem(currentCorpseId, 0);
-                            ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 3.1 currentState: OpenCorpse -  Opening corpse...", 3);
-                            waitTicks = 4; // make this a config value
-                            WaitForOpeningCorpseCurrentTickCount = 0;
-                            currentState = LootState.WaitForOpenCorpse;
-                            ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 3.2 currentState: {previousState} --> NextState: {currentState}", 3);
+                            ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 3.2 currentState: {previousState} --> NextState: {currentState}", int.Parse(pluginCore.editLogLevel.Text));
                         }
                         else
                         {
-                            ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 3.3 currentState: OpenCorpse -  Corpse {currentCorpseId} is too far away ({dts}), skipping.", 3);
+                            ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 3.3 currentState: OpenCorpse -  Corpse {currentCorpseId} is too far away ({dts}), skipping.", int.Parse(pluginCore.editLogLevel.Text));
                             currentState = LootState.Idle; // go back to waiting
                         }
                         isBusy = false; // reset busy state
                         break;
 
                     case LootState.WaitForOpenCorpse:
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 4.0 currentState: {currentState}", 3);
+                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 4.0 currentState: {currentState}", int.Parse(pluginCore.editLogLevel.Text));
                         previousState = currentState;
-                        currentState = LootState.Unknown;
-                        // Each tick is 500ms, so count how many times we have ticked
-                        // and if we have ticked waitTicks, change state to ScanForItems
-                        if (waitTicks > WaitForOpeningCorpseCurrentTickCount)
-                        {
-                            WaitForOpeningCorpseCurrentTickCount++;
-                            currentState = LootState.WaitForOpenCorpse;
-                        }
-                        else
-                        {
-                            currentState = LootState.ScanForItems;
-                        }
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 4.1 currentState: {previousState} --> NextState: {currentState} :: Waited {WaitForOpeningCorpseCurrentTickCount} tick counts for {currentCorpseId} Corpse to open", 3);
+                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 4.1 currentState: {previousState} --> NextState: {currentState} :: Waited {WaitForOpeningCorpseCurrentTickCount} tick counts for {currentCorpseId} Corpse to open", int.Parse(pluginCore.editLogLevel.Text));
                         isBusy = false; // reset busy state
                         break;
 
 
                     case LootState.ScanForItems:
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 5.0 currentState: {currentState}", 3);
+                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 5.0 currentState: {currentState}", int.Parse(pluginCore.editLogLevel.Text));
                         previousState = currentState;
-                        currentState = LootState.Unknown;
                         FindLootableItems(e, currentCorpseId);
                         if (itemsToLootIds.Count > 0)
                         {
@@ -218,203 +222,101 @@ namespace WaynesWorld
                         }
                         else
                         {
-                            currentState = LootState.Done;
+                            currentState = LootState.Idle;
                         }
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 5.1 currentState: {previousState} --> NextState: {currentState} :: Found {itemsToLootIds.Count} items.", 3);
+                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 5.1 currentState: {previousState} --> NextState: {currentState} :: Found {itemsToLootIds.Count} items.", int.Parse(pluginCore.editLogLevel.Text));
                         isBusy = false; // reset busy state
                         break;
 
                     case LootState.PickupItems:
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 6.0 currentState: {currentState}", 3);
+                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 6.0 currentState: {currentState}", int.Parse(pluginCore.editLogLevel.Text));
                         previousState = currentState;
-                        currentState = LootState.Unknown;
                         // assume the corpse is open and we can loot items
                         // grab item/wiat for grab/go back into PicupItems state
-                        // rework this logic to use the itemsToLoot list and make it re-entrant
                         if (itemsToLootIds.Count == 0)
                         {
-                            currentState = LootState.Done;
+                            currentState = LootState.Idle;
                         }
                         else
                         {
-                            WaitForGrabItemCurrentTickCount = 0;
-                            WaitForGrabItemTargetTickCount = 2; // make this a config value
                             itemToGrabId = itemsToLootIds.First();
                             itemsToLootIds.Remove(itemToGrabId);
+                            grabItemTimer.Start(); // Start the timer to wait for the item to be grabbed
                             currentState = LootState.WaitForPickupItems;
                             CoreManager.Current.Actions.MoveItem(itemToGrabId, CoreManager.Current.CharacterFilter.Id);
                         }
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 6.1 currentState: {previousState} --> NextState: {currentState} :: Looting {itemsToLootIds.Count} items.", 3);
+                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 6.1 currentState: {previousState} --> NextState: {currentState} :: Looting {itemsToLootIds.Count} items.", int.Parse(pluginCore.editLogLevel.Text));
                         isBusy = false; // reset busy state
                         break;
 
                     case LootState.WaitForPickupItems:
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 7.0 currentState: {currentState}", 3);
+                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 7.0 currentState: {currentState}", int.Parse(pluginCore.editLogLevel.Text));
                         previousState = currentState;
-                        currentState = LootState.Unknown;
-                        // Each tick is 500ms, so count how many times we have ticked
-                        // and if we have ticked waitTicks, change state to ScanForItems
-                        if (waitTicks > WaitForGrabItemCurrentTickCount)
-                        {
-                            WaitForGrabItemCurrentTickCount++;
-                            currentState = LootState.WaitForPickupItems;
-                        }
-                        else
-                        {
-                            currentState = LootState.PickupItems;
-                        }
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 7.1 currentState: {previousState} --> NextState: {currentState} :: Waited {WaitForGrabItemCurrentTickCount} ticks for item {itemToGrabId}", 3);
+                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 7.1 currentState: {previousState} --> NextState: {currentState} :: Waited {WaitForGrabItemCurrentTickCount} ticks for item {itemToGrabId}", int.Parse(pluginCore.editLogLevel.Text));
                         isBusy = false; // reset busy state    
                         break;
 
-                    case LootState.Done:
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 8.0 currentState: {currentState}", 3);
-                        previousState = currentState;
-                        currentState = LootState.Unknown;
-                        currentCorpseId = 0;
-                        itemsToLootIds.Clear();
-                        // check if there are more corpses to loot
-                        if (corpsesToLootIds.Count > 0)
-                        {
-                            currentState = LootState.OpenCorpse; // go back to opening the next corpse
-                        }
-                        else
-                        {
-                            currentState = LootState.Idle;
-                        }
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 8.1 currentState: {previousState} --> NextState: {currentState} :: Found {corpsesToLootIds.Count} more corpses to loot.", 3);
-                        isBusy = false; // reset busy state
-                        break;
-
                     default:
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 9.0 currentState: {currentState} -  ERROR: Unknown state .... Stopping FSM TIMER ", 3);
+                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] 9.0 currentState: {currentState} -  ERROR: Unknown state .... Stopping FSM TIMER ", int.Parse(pluginCore.editLogLevel.Text));
                         this.Stop();
                         currentState = LootState.Idle;
                         isBusy = false; // reset busy state
                         break;
                 }
             }
-
-            private void FindNearCorpses(ElapsedEventArgs e)
-            {
-                Stopwatch stopwatch = new Stopwatch();
-                stopwatch.Start();
-                bool found = false; // flag to indicate if we found any corpses to be added to the corpsesToLoot list
-
-                ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] method: FindNearCorpses()", 3);
-                foreach (WorldObject obj in CoreManager.Current.WorldFilter.GetByObjectClass(ObjectClass.Corpse))
-                {
-                    found = false;
-                    // is it close enough that we care about it?
-                    double dts = CoreManager.Current.WorldFilter.Distance(CoreManager.Current.CharacterFilter.Id, obj.Id);
-                    if (dts > 0.03)  // make this a config value
-                    {
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] method: FindNearCorpses() - {obj.Name}: {obj.Id}) at distance {dts} - too far away, skip", 3);
-                        found = true; // set found to true, too far away, but same effect, it skips this corpse
-                        continue; // skip this corpse if it is too far away
-                    }
-                    if (!found)
-                    {
-                        if (corpsesToLootIds.Contains(obj.Id))
-                        {
-                            // in theory, this should never happen, but just in case
-                            ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] method: FindNearCorpses() - Found corpse {obj.Id} in corpsesToLootIds set, skipping.", 3);
-                            found = true; // set found to true so we can skip this corpse
-                            continue; // skip this corpse
-                        }
-                    }
-                    if (!found)
-                    {
-                        if (corpsesLootedIds.Contains(obj.Id))
-                        {
-                            ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] method: FindNearCorpses() - Found corpse {obj.Id} in corpsesLootedIds set, skipping.", 3);
-                            found = true; // set found to true so we can skip this corpse
-                            continue; // skip this corpse
-                        }
-                    }
-                    // if we get here, the corpse is close, is not in either list, so we can add it to the corpsesToLoot list
-                    if (!found)
-                    {
-                        corpsesToLootIds.Add(obj.Id);
-                        ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] method: FindNearCorpses() - {obj.Name}: {obj.Id}) at distance {dts} - corpsesToLoot.Add()", 3);
-                    }
-                }
-
-                stopwatch.Stop();
-                long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
-                ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] method: FindNearCorpses() - executed in {elapsedMilliseconds} ms", 3);
-
-                return;
-            }
-
+                  
             private void FindLootableItems(ElapsedEventArgs e, int corpseId)
             {
+                stopwatch0.Restart();
+
                 int spellID;
                 FileService fileService;
                 SoundPlayer soundPlayerCreate = new SoundPlayer(@"C:\DP3\found.wav");
                 SoundPlayer soundPlayerDestroy = new SoundPlayer(@"C:\DP3\gone.wav");
                 // I need to figure out a way to access stuff defined in the PluginCore class, like the error log file path
-                string errorLogFile = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + DIR_SEP + "Decal Plugins" + DIR_SEP + PLUGIN + DIR_SEP + FILENAME_ERRORLOG;
+                string errorLogFile = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + DIR_SEP + "Decal Plugins" +DIR_SEP + PLUGIN + DIR_SEP + FILENAME_ERRORLOG;
+                fileService = (FileService)Decal.Adapter.CoreManager.Current.FileService;
 
-                ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] method: FindLootableItems() - Finding items in corpse {corpseId}", 3);
+                ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] method: FindLootableItems() - Finding items in corpse {corpseId}", int.Parse(pluginCore.editLogLevel.Text));
                 foreach (WorldObject obj in CoreManager.Current.WorldFilter.GetByContainer(corpseId))
                 {
-                    //if (obj.Container == corpseId && obj.Values(LongValueKey.Value, 1) >= 4000)
-                    //{
-                    //   itemsToLootIds.Add(obj.Id);
-                    //    continue;
-                    //}
-                    if (obj.Container == corpseId)
+                    stopwatch1.Restart();
+                    if (MatchesAnyRule(buildSearchString(obj)))
                     {
-                        if (MatchesAnyRule(buildSearchString(obj)))
-                        {
-                            ErrorLogging.log($"[FSM] Object matched a rule: {obj.Name}", 3);
-                            itemsToLootIds.Add(obj.Id);
-                            continue;
-                        }
+                        itemsToLootIds.Add(obj.Id);
+                        continue;
                     }
+                    stopwatch1.Stop();
+                    long elapsedMilliseconds_t1 = stopwatch1.ElapsedMilliseconds;
+                    ErrorLogging.log($"[TIM] [EVT: {e.SignalTime}] method: FindLootableItems() - {obj.Name} ({obj.Id}) - Regex Check: {elapsedMilliseconds_t1} ms", int.Parse(pluginCore.editLogLevel.Text));
 
                     // If the item is a spell
+                    stopwatch2.Restart();
                     if (obj.ObjectClass == ObjectClass.Scroll)
                     {
                         try
                         {   // If the item is a scroll, check to see if I know it
                             // If the spell ID is 0, then it is not a spell scroll
                             spellID = obj.Values(Decal.Adapter.Wrappers.LongValueKey.AssociatedSpell, 0);
-                            fileService = (FileService)Decal.Adapter.CoreManager.Current.FileService;
                             Spell spell = fileService.SpellTable.GetById(spellID);
                             SpellSchool spellSchool = spell.School;
-                            bool creatureTrained = false;
-                            bool lifeTrained = false;
-                            bool itemTrained = false;
-                            bool warTrained = false;
-                            bool voidTrained = false;
-                            if (Decal.Adapter.CoreManager.Current.CharacterFilter.Skills[Decal.Adapter.Wrappers.CharFilterSkillType.CreatureEnchantment].Training >= TrainingType.Trained)
-                                creatureTrained = true;
-                            if (Decal.Adapter.CoreManager.Current.CharacterFilter.Skills[Decal.Adapter.Wrappers.CharFilterSkillType.LifeMagic].Training >= TrainingType.Trained)
-                                lifeTrained = true;
-                            if (Decal.Adapter.CoreManager.Current.CharacterFilter.Skills[Decal.Adapter.Wrappers.CharFilterSkillType.ItemEnchantment].Training >= TrainingType.Trained)
-                                itemTrained = true;
-                            if (Decal.Adapter.CoreManager.Current.CharacterFilter.Skills[Decal.Adapter.Wrappers.CharFilterSkillType.WarMagic].Training >= TrainingType.Trained)
-                                warTrained = true;
-                            if (Decal.Adapter.CoreManager.Current.CharacterFilter.Skills[Decal.Adapter.Wrappers.CharFilterSkillType.VoidMagic].Training >= TrainingType.Trained)
-                                voidTrained = true;
-                            if ((spellSchool.Id == Decal.Constants.SchoolID.Creature) && (creatureTrained) ||
-                                    (spellSchool.Id == Decal.Constants.SchoolID.Life) && (lifeTrained) ||
-                                    (spellSchool.Id == Decal.Constants.SchoolID.Item) && (itemTrained) ||
-                                    (spellSchool.Id == Decal.Constants.SchoolID.War) && (warTrained) ||
-                                    (spellSchool.Id == Decal.Constants.SchoolID.Void) && (voidTrained))
+
+                            if ((spellSchool.Id == Decal.Constants.SchoolID.Creature) && (isTrainedCreatureEnchantment) ||
+                                    (spellSchool.Id == Decal.Constants.SchoolID.Life) && (isTrainedLifeMagic) ||
+                                    (spellSchool.Id == Decal.Constants.SchoolID.Item) && (isTrainedItemEnchantment) ||
+                                    (spellSchool.Id == Decal.Constants.SchoolID.War)  && (isTrainedWarMagic) ||
+                                    (spellSchool.Id == Decal.Constants.SchoolID.Void) && (isTrainedVoidMagic) ||
+                                    (spellSchool.Id == Decal.Constants.SchoolID.Summoning) && (isTrainedSummoningEnchantment)) // Add more schools as needed
                             {
                                 if (!Decal.Adapter.CoreManager.Current.CharacterFilter.IsSpellKnown(spellID))
                                 {
                                     ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] method: FindLootableItems() You do not know the spell: " + obj.Name + "  == GRAB IT !!! ==", Decal.Constants.TextColors.AC_PURPLE);
-                                    soundPlayerCreate.Play(); // Play the sound for an unknown spell being found
                                     itemsToLootIds.Add(obj.Id);
                                 }
                             }
                             else
                             {
-                                ErrorLogging.log("$[FSM] [EVT: {e.SignalTime}] method: FindLootableItems() You do not have this school trained: " + obj.Name + "  == SKIP IT !!! ==", Decal.Constants.TextColors.AC_PURPLE);
+                                ErrorLogging.log($"[FSM] [EVT: {e.SignalTime}] method: FindLootableItems() You do not have this school trained: " + obj.Name + "  == SKIP IT !!! ==", Decal.Constants.TextColors.AC_PURPLE);
                             }
                         }
                         catch (Exception ex)
@@ -422,43 +324,69 @@ namespace WaynesWorld
                             ErrorLogging.LogError(errorLogFile, ex);
                         }
                     }
+                    stopwatch2.Stop();
+
+                    long elapsedMilliseconds_t2 = stopwatch2.ElapsedMilliseconds;
+                    ErrorLogging.log($"[TIM] [EVT: {e.SignalTime}] method: FindLootableItems() - {obj.Name} ({obj.Id}) - Spell Check: {elapsedMilliseconds_t2} ms", int.Parse(pluginCore.editLogLevel.Text));
                 }
+                stopwatch0.Stop();
+                long elapsedMilliseconds = stopwatch0.ElapsedMilliseconds;
+                ErrorLogging.log($"[TIM] [EVT: {e.SignalTime}] method: FindLootableItems() - executed in {elapsedMilliseconds} ms", int.Parse(pluginCore.editLogLevel.Text));
             }
 
-            public static string buildSearchString(WorldObject worldObject)
+            private string buildSearchString(WorldObject worldObject)
             {
+                stopwatch3.Restart();
                 if (worldObject == null) return string.Empty;
-                string searchString = (
-                      "f1=" + worldObject.SpellCount.ToString() + ";"
-                    + "f2=" + worldObject.Behavior.ToString() + ";"
-                    + "f3=" + worldObject.Category.ToString() + ";"
-                    + "f4=" + worldObject.Container.ToString() + ";"
-                    + "f5=" + worldObject.Id.ToString() + ";"
-                    + "f6=" + worldObject.Name.ToString() + ";"
-                    + "f7=" + worldObject.ObjectClass.GetType() + ";"
-                    + "f8=" + worldObject.Type.ToString() + ";"
-                    + "f9=" + worldObject.Values(LongValueKey.Value) + ";"
-                    + "f10=" + worldObject.Values(LongValueKey.Material) + ";"
-                    );
-                return (searchString);
+
+                // use StringBuilder for better performance when concatenating strings
+                StringBuilder sb = new StringBuilder();
+                sb.Append("SpellCount:").Append(worldObject.SpellCount).Append(';');
+                sb.Append("Behavior:").Append(worldObject.Behavior).Append(';');
+                sb.Append("Category:").Append(worldObject.Category).Append(';');
+                sb.Append("Container:").Append(worldObject.Container).Append(';');
+                sb.Append("Id:").Append(worldObject.Id).Append(';');
+                sb.Append("Name:").Append(worldObject.Name).Append(';');
+                sb.Append("ObjectClass:").Append(worldObject.ObjectClass).Append(';');
+                sb.Append("Type:").Append(worldObject.Type).Append(';');
+                sb.Append("Value:").Append(worldObject.Values(LongValueKey.Value)).Append(';');
+                sb.Append("Material:").Append(worldObject.Values(LongValueKey.Material)).Append(';');
+
+                stopwatch3.Stop();
+                long elapsedMilliseconds = stopwatch3.ElapsedMilliseconds;
+                ErrorLogging.log($"[TIM] buildSearchString() - executed in {elapsedMilliseconds} ms", int.Parse(pluginCore.editLogLevel.Text));
+                ErrorLogging.log($"[FSM] buildSearchString() - {sb.ToString()}", int.Parse(pluginCore.editLogLevel.Text));
+
+                return (sb.ToString());
             }
 
             public bool MatchesAnyRule(string searchString)
             {
+                // Start measuring time
+                stopwatch4.Restart();
+
                 if (pluginCore.pluginSettings.Items == null || pluginCore.pluginSettings.Items.Count == 0 || string.IsNullOrWhiteSpace(searchString))
                     return false;
 
                 foreach (var rule in pluginCore.pluginSettings.Items)
                 {
-                    if (!rule.Enabled || string.IsNullOrWhiteSpace(rule.Regex))
-                        continue;
+                    if (!rule.enabled || string.IsNullOrWhiteSpace(rule.regex) || (rule.CompiledRegex == null))
+                    { 
+                        ErrorLogging.log($"[FSM] Method: MatchesAnyRule - Rule '{rule.rulename}' is disabled or has an invalid regex, skipping.", int.Parse(pluginCore.editLogLevel.Text));
+                        continue; // Skip disabled rules or rules with empty regex
+                    }
 
                     try
                     {
-                        if (Regex.IsMatch(searchString, rule.Regex, RegexOptions.IgnoreCase))
+                        //if (Regex.IsMatch(searchString, rule.Regex, RegexOptions.IgnoreCase))
+                        if (rule.CompiledRegex.IsMatch(searchString))
                         {
-                            ErrorLogging.log($"[FSM] Regex in rule matched object: '{rule.RuleName}': {rule.Regex}: {searchString}", 3);
+                            ErrorLogging.log($"[FSM] Method: MatchesAnyRule - Regex in rule matched object == Rule - '{rule.rulename}' Regex - {rule.regex} {searchString}", int.Parse(pluginCore.editLogLevel.Text));
                             return true;
+                        }
+                        else
+                        {
+                            ErrorLogging.log($"[FSM] Method: MatchesAnyRule - Regex in rule did not match object == Rule - '{rule.rulename}' Regex - {rule.regex} {searchString}", int.Parse(pluginCore.editLogLevel.Text));
                         }
                     }
                     catch (Exception ex)
@@ -468,13 +396,18 @@ namespace WaynesWorld
                     }
                 }
 
+                // Stop measuring time
+                stopwatch4.Stop();
+                long elapsedMilliseconds = stopwatch4.ElapsedMilliseconds;
+                ErrorLogging.log($"[TIM] MatchesAnyRule() - executed in {elapsedMilliseconds} ms", int.Parse(pluginCore.editLogLevel.Text));
+
                 return false;
             }
 
         }
 
 
-
+        //---------------------------------------------------------------------------------------------------
         // Below this point is PluginCore.cs code that is used to handle events and create objects.
         // You are no longer in the AutoLootStateMachine class, but in the PluginCore class
         public void FSM_WorldFilter_CreateObject(object sender, CreateObjectEventArgs e)
@@ -497,16 +430,16 @@ namespace WaynesWorld
                 if (autoLootStateMachine.GetcorpsesToLootIds().Contains(e.New.Id))
                 {
                     // in theory, this should never happen, but just in case
-                    ErrorLogging.log($"[OWC: {timestamp}] method: FSM_WorldFilter_CreateObject() - Found corpse {e.New.Id} in corpsesToLootIds, skipping.", 3);
+                    ErrorLogging.log($"[OWC: {timestamp}] method: FSM_WorldFilter_CreateObject() - Found corpse {e.New.Id} in corpsesToLootIds, skipping.", int.Parse(editLogLevel.Text));
                 }
                 else if (autoLootStateMachine.GetcorpsesLootedIds().Contains(e.New.Id))
                 {
-                    ErrorLogging.log($"[OWC: {timestamp}] method: FSM_WorldFilter_CreateObject() - Found corpse {e.New.Id} in corpsesLootedIds, skipping.", 3);
+                    ErrorLogging.log($"[OWC: {timestamp}] method: FSM_WorldFilter_CreateObject() - Found corpse {e.New.Id} in corpsesLootedIds, skipping.", int.Parse(editLogLevel.Text));
                 }
                 else
                 {
                     autoLootStateMachine.GetcorpsesToLootIds().Add(e.New.Id);
-                    ErrorLogging.log($"[OWC: {timestamp}] method: FSM_WorldFilter_CreateObject() - Adding corpse {e.New.Id} to corpsesToLootIds.", 3);
+                    ErrorLogging.log($"[OWC: {timestamp}] method: FSM_WorldFilter_CreateObject() - Adding corpse {e.New.Id} to corpsesToLootIds.", int.Parse(editLogLevel.Text));
                 }
             }
             catch (Exception ex)

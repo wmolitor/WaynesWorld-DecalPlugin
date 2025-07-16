@@ -37,6 +37,8 @@ namespace WaynesWorld
             // DO STUFF HERE
             try
             {
+
+                //HEALING
                 if (cbAutoHeal.Checked)
                 {
                     if (((e.Message.Type == Decal.Constants.MessageTypes.GameEvent)&&(e.Message.Value<int>("event") == Decal.Constants.GameEvents.ReceiveMeleeDamage)) || 
@@ -63,11 +65,11 @@ namespace WaynesWorld
 
                 /*
                 if (e.Message.Type == Decal.Constants.MessageTypes.GameEvent)
-                    ErrorLogging.log("Game Event 0xF7B0: 0x" + e.Message.Value<int>("event").ToString("X4"), 1);
+                    ErrorLogging.log("Game Event 0xF7B0: 0x" + e.Message.Value<int>("event").ToString("X4"), editLogLevel.Text);
                 else if (e.Message.Type == Decal.Constants.MessageTypes.GameAction)
-                    ErrorLogging.log("Game Action 0xF7B1: 0x" + e.Message.Value<int>("action").ToString("X4"), 1);
+                    ErrorLogging.log("Game Action 0xF7B1: 0x" + e.Message.Value<int>("action").ToString("X4"), editLogLevel.Text);
                 else
-                    ErrorLogging.log(e.Message.Type.ToString("X4"), 1); // Log the message type
+                    ErrorLogging.log(e.Message.Type.ToString("X4"), editLogLevel.Text); // Log the message type
                 */
 
                 ////////////////////////////////////////////////
@@ -76,7 +78,8 @@ namespace WaynesWorld
                 {
                     if ((e.Message.Type == Decal.Constants.MessageTypes.GameEvent) && (e.Message.Value<int>("event") == Decal.Constants.GameEvents.SetPackContents))
                     {
-                        ErrorLogging.log("[ECHO] 0xF7B1: 0x" + e.Message.Value<int>("action").ToString("X4") + " Set Pack Contenets (" + e.Message.Value<int>("itemCount") + ")", 1);
+                        ErrorLogging.log("[ECHO] 0xF7B1: 0x" + e.Message.Value<int>("action").ToString("X4") + " Set Pack Contenets (" + e.Message.Value<int>("itemCount") + ")", int.Parse(editLogLevel.Text));
+                        autoLootStateMachine.openCorpseTimer.Stop();
                         autoLootStateMachine.SetState(LootState.ScanForItems);
                     }
 
@@ -92,8 +95,9 @@ namespace WaynesWorld
                             if (obj.Id == itemId)
                             {
                                 soundPlayerCreate.Play(); // Play sound when an item is inserted into inventory
-                                ErrorLogging.log("[ECHO]: 0xF7B0: event 0x0022: Insert Inventory Item: " + obj.Name, 3);
-                                autoLootStateMachine.SetState(LootState.ScanForItems);
+                                ErrorLogging.log("[ECHO]: 0xF7B0: event 0x0022: Insert Inventory Item: " + obj.Name, int.Parse(editLogLevel.Text));
+                                autoLootStateMachine.SetState(LootState.PickupItems);
+                                autoLootStateMachine.grabItemTimer.Stop(); // Stop the grab item timer
                             }
                         }
                     }

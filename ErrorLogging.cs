@@ -38,7 +38,7 @@ namespace WaynesWorld
         internal static void log(string message, int log_level)
         {
             
-            string textToAppend = $"[LootFSM][LOG: {DateTime.Now:HH:mm:ss.fff}] {message}";
+            string textToAppend = $"[LootFSM: {DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}] {message}";
 
             if (log_level > 0)
             {

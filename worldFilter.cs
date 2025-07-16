@@ -305,13 +305,14 @@ namespace WaynesWorld
                     if (corpsesLootedIds.Contains(e.Released.Id))
                     {
                         // If the corpse is in the list, remove it
-                        CoreManager.Current.Actions.AddChatText($"Corpse: {e.Released.Name}  removed from loot list", 5);
+                        ErrorLogging.log($"[OWR] Corpse: {e.Released.Name}  removed from corpsesLootedIds list", 5);
+                        CoreManager.Current.Actions.AddChatText($"Corpse: {e.Released.Name}  removed from corpsesLootedIds list", 5);
                         corpsesLootedIds.Remove(e.Released.Id); // remove this corpse
                     }
                     if (corpsesToLootIds.Contains(e.Released.Id))
                     {
                         // If the corpse is in the list, remove it
-                        CoreManager.Current.Actions.AddChatText($"Corpse: {e.Released.Name}  removed from loot list", 5);
+                        CoreManager.Current.Actions.AddChatText($"[OWR] Corpse: {e.Released.Name}  removed from corpsesToLootIds list", 5);
                         corpsesToLootIds.Remove(e.Released.Id); // remove this corpse
                     }
                 }
